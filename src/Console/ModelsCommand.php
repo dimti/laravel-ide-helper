@@ -175,6 +175,13 @@ class ModelsCommand extends Command
                     }
 
                     $this->getPropertiesFromMethods($model);
+
+	                $this->setMethod(
+		                Str::camel("get"),
+		                '\Illuminate\Database\Eloquent\Collection|\\' . get_class($model) . '[]',
+		                array()
+	                );
+
                     $output .= $this->createPhpDocs($name);
                 } catch (\Exception $e) {
                     $this->error("Exception: " . $e->getMessage() . "\nCould not analyze class $name.");
@@ -421,9 +428,17 @@ class ModelsCommand extends Command
             if ($name == "property" || $name == "property-read" || $name == "property-write") {
                 $properties[] = $tag->getVariableName();
             } elseif ($name == "method") {
+	            if (preg_match('#\[\] ([a-Z]+)\(\)$#', $tag->getContent(), $matchTagContent)) {
+		            $methiods[] = $matchTagContent[1];
+	            } else {
+                    $methods[] = $tag->getMethodName();
+	            }
+            } elseif ($name == "method") {
                 $methods[] = $tag->getMethodName();
             }
         }
+
+//	    $methods[] = 'get';
 
         foreach ($this->properties as $name => $property) {
             $name = "\$$name";
