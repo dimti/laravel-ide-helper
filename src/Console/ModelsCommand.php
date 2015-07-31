@@ -428,8 +428,8 @@ class ModelsCommand extends Command
             if ($name == "property" || $name == "property-read" || $name == "property-write") {
                 $properties[] = $tag->getVariableName();
             } elseif ($name == "method") {
-	            if (preg_match('#\[\] ([a-Z]+)\(\)$#', $tag->getContent(), $matchTagContent)) {
-		            $methiods[] = $matchTagContent[1];
+	            if (preg_match('#\[\] ([a-zA-Z]+)\(\)$#', $tag->getContent(), $matchTagContent)) {
+		            $methods[] = $matchTagContent[1];
 	            } else {
                     $methods[] = $tag->getMethodName();
 	            }
