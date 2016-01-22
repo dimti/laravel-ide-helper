@@ -11,6 +11,7 @@
 namespace Barryvdh\LaravelIdeHelper;
 
 use Illuminate\Foundation\AliasLoader;
+use Illuminate\Foundation\Application;
 use Illuminate\Config\Repository as ConfigRepository;
 use Symfony\Component\Console\Output\OutputInterface;
 
@@ -80,7 +81,7 @@ class Generator
         return $this->view->make('ide-helper::helper')
             ->with('namespaces', $this->getNamespaces())
             ->with('helpers', $this->helpers)
-            ->with('version', $app::VERSION)
+            ->with('version', $app->version())
             ->render();
     }
 
@@ -113,9 +114,12 @@ class Generator
 
     protected function detectDrivers()
     {
+        $this->interfaces['\Illuminate\Contracts\Auth\Authenticatable'] = config('auth.model', 'App\User');
+        
         try{
             if (class_exists('Auth') && is_a('Auth', '\Illuminate\Support\Facades\Auth', true)) {
-                $class = get_class(\Auth::driver());
+                $authMethod = version_compare(Application::VERSION, '5.2', '>=') ? 'guard' : 'driver';
+                $class = get_class(\Auth::$authMethod());
                 $this->extra['Auth'] = array($class);
                 $this->interfaces['\Illuminate\Auth\UserProviderInterface'] = $class;
             }
@@ -166,8 +170,7 @@ class Generator
         $namespaces = array();
 
         // Get all aliases
-        foreach (AliasLoader::getInstance()->getAliases() as $name => $facade) {
-            
+        foreach ($this->getAliases() as $name => $facade) {
             // Skip the Redis facade, if not available (otherwise Fatal PHP Error)
             if ($facade == 'Illuminate\Support\Facades\Redis' && !class_exists('Predis\Client')) {
                 continue;
@@ -192,6 +195,39 @@ class Generator
         }
 
         return $namespaces;
+    }
+
+    protected function getAliases()
+    {
+        // For Laravel, use the AliasLoader
+        if (class_exists('Illuminate\Foundation\AliasLoader')) {
+            return AliasLoader::getInstance()->getAliases();
+        }
+
+        $facades = [
+          'App' => 'Illuminate\Support\Facades\App',
+          'Auth' => 'Illuminate\Support\Facades\Auth',
+          'Bus' => 'Illuminate\Support\Facades\Bus',
+          'DB' => 'Illuminate\Support\Facades\DB',
+          'Cache' => 'Illuminate\Support\Facades\Cache',
+          'Cookie' => 'Illuminate\Support\Facades\Cookie',
+          'Crypt' => 'Illuminate\Support\Facades\Crypt',
+          'Event' => 'Illuminate\Support\Facades\Event',
+          'Hash' => 'Illuminate\Support\Facades\Hash',
+          'Log' => 'Illuminate\Support\Facades\Log',
+          'Mail' => 'Illuminate\Support\Facades\Mail',
+          'Queue' => 'Illuminate\Support\Facades\Queue',
+          'Request' => 'Illuminate\Support\Facades\Request',
+          'Schema' => 'Illuminate\Support\Facades\Schema',
+          'Session' => 'Illuminate\Support\Facades\Session',
+          'Storage' => 'Illuminate\Support\Facades\Storage',
+          //'Validator' => 'Illuminate\Support\Facades\Validator',
+        ];
+
+        // Only return the ones that actually exist
+        return array_filter($facades, function($alias){
+            return class_exists($alias);
+        });
     }
 
     /**
