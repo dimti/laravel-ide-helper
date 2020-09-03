@@ -213,6 +213,10 @@ class Alias
             }
         } finally {
             $facade::swap($real);
+
+            if (strpos(get_class($real), 'Events\Dispatcher') !== false) {
+                \Model::setEventDispatcher($real);
+            }
         }
     }
 
